@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f1fb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="ゼミで仲良くなったリコとのトークを楽しむ、ゆるっと会話ゲーム。">
+<style>
+html{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;font-size:14px;-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<meta property="og:type" content="website">
+<meta property="og:title" content="フレネミーごっこ">
+<meta property="og:description" content="ゼミで仲良くなったリコとのトーク。ずっと友達、だよね？">
+<meta property="og:url" content="https://noppippi.github.io/frenemy/">
+<meta property="og:image" content="https://noppippi.github.io/frenemy/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="フレネミーごっこ">
+<meta name="twitter:image" content="https://noppippi.github.io/frenemy/ogp.png">
+<title>フレネミーごっこ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Shippori+Mincho+B1:wght@800&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* layout: one-screen chat app — header + two gauges / scrolling talk / reply tray.
+   Starts as a harmless pastel chat game; each phase class on :root drifts the palette toward a dark horror room. */
+:root{
+  --bg:#f7f1fb;
+  --talk:#ede4f6;
+  --ink:#2a2233;
+  --muted:#7a6d86;
+  --bubble:#ffffff;
+  --bubble-ink:#2a2233;
+  --me:#d6c2f2;
+  --accent:#8b5cc8;
+  --warn:#d43f67;
+  --line:#ddd0ea;
+  --opt:#ffffff;
+  --toast-bg:#2a2233;
+  --toast-ink:#f7f1fb;
+  --veil:rgba(60,40,80,.35);
+  --grain:0;
+  --vig:inset 0 0 0 0 rgba(0,0,0,0);
+  --f-cute:"Mochiy Pop One","Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif;
+  --f-horror:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:light;
+}
+:root.p2{--bg:#ebe5ee;--talk:#dcd2e2;--muted:#6f6578;--me:#c8b8d9;--accent:#7b5ba6;--line:#cbbfd4;--vig:inset 0 0 70px 0 rgba(40,20,50,.18)}
+:root.p3{--bg:#241f29;--talk:#1b161f;--ink:#e4dbe2;--muted:#968a96;--bubble:#e9e0e6;--bubble-ink:#241a20;--me:#4a3346;--accent:#9c2d4a;--warn:#ff4d6a;--line:#393040;--opt:#2a2330;--toast-bg:#1d0b11;--toast-ink:#ebe2e7;--veil:rgba(5,2,4,.85);--grain:.04;--vig:inset 0 0 110px 20px rgba(60,0,12,.6);color-scheme:dark}
+:root.pwin{--bg:#fffdf3;--talk:#fff6fa;--ink:#3b2a33;--muted:#a08a95;--bubble:#ffffff;--bubble-ink:#3b2a33;--me:#ffd6e7;--accent:#ff5f9e;--warn:#ff5f9e;--line:#ffe1ee;--opt:#ffffff;--toast-bg:#3b2a33;--toast-ink:#fffdf3;--veil:rgba(255,252,240,.94);--grain:0;--vig:inset 0 0 0 0 rgba(0,0,0,0);color-scheme:light}
+:root.p4{--bg:#0b090c;--talk:#0a0407;--ink:#ebe2e7;--muted:#857882;--bubble:#efe5ea;--bubble-ink:#1c1318;--me:#3b1a23;--accent:#b0142f;--warn:#ff3355;--line:#3a1820;--opt:#17111a;--toast-bg:#1d0b11;--toast-ink:#ebe2e7;--veil:rgba(5,2,4,.9);--grain:.08;--vig:inset 0 0 140px 40px rgba(110,0,20,.6);color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-weight:500;overflow:hidden;transition:background-color 2s,color 2s}
+.app{height:100%;display:flex;flex-direction:column;max-width:520px;margin:0 auto;background:var(--talk);position:relative;overflow:hidden;transition:background-color 2s}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.grain{position:absolute;inset:-50%;pointer-events:none;z-index:8;opacity:var(--grain);transition:opacity 2s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain .6s steps(3) infinite}
+@keyframes grain{0%{transform:translate(0,0)}33%{transform:translate(-4%,3%)}66%{transform:translate(3%,-2%)}100%{transform:translate(0,0)}}
+.vig{position:absolute;inset:0;pointer-events:none;z-index:7;box-shadow:var(--vig);transition:box-shadow 2s}
+:root.p4 .vig{animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.75}}
+
+header{background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;display:flex;flex-direction:column;gap:8px;flex:none;position:relative;z-index:2;transition:background-color 2s,border-color 2s}
+.top{display:flex;align-items:center;gap:10px}
+.av{width:36px;height:36px;border-radius:50%;overflow:hidden;flex:none;display:block}
+.av svg{display:block;width:100%;height:100%}
+.who{flex:1;min-width:0}
+.who b{display:block;font-size:16px}
+.who span{font-size:11px;color:var(--muted)}
+:root.p3 .who span,:root.p4 .who span{color:var(--warn)}
+:root.p4 .who span{animation:flick 2.6s infinite}
+.month{font-family:var(--f-cute);font-size:12px;background:var(--ink);color:var(--bg);border-radius:999px;padding:5px 11px;font-variant-numeric:tabular-nums;transition:background-color 2s,color 2s}
+:root.p3 .month,:root.p4 .month{font-family:var(--f-horror);font-size:14px;background:transparent;color:var(--warn);border:1px solid var(--accent);border-radius:4px;padding:3px 9px}
+
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g{display:flex;flex-direction:column;gap:3px;min-width:0;position:relative}
+.g .lab{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.g .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:999px;transition:width .5s ease,background-color 2s}
+.g.low .bar i{background:var(--warn)}
+.g.low .lab b{color:var(--warn)}
+:root.p4 .g.low .bar i{animation:flick 1.4s infinite}
+.chip{position:absolute;right:0;top:-2px;font-family:var(--f-cute);font-size:13px;pointer-events:none;animation:up 1.2s ease forwards}
+.chip.neg{color:var(--warn)} .chip.pos{color:#3f9a7c}
+@keyframes up{0%{opacity:0;transform:translateY(6px)}15%{opacity:1}100%{opacity:0;transform:translateY(-18px)}}
+
+.talk{flex:1;overflow-y:auto;padding-block:14px;display:flex;flex-direction:column;gap:10px;min-height:0;position:relative;z-index:1}
+.row{display:flex;gap:8px;align-items:flex-end;max-width:100%}
+.row.riko .av{width:32px;height:32px}
+.row.me{justify-content:flex-end}
+.bub{max-width:72%;padding:9px 13px;border-radius:18px;line-height:1.55;font-size:14.5px;word-break:break-word;animation:pop .22s ease;transition:background-color 2s,color 2s}
+.riko .bub{background:var(--bubble);color:var(--bubble-ink);border-top-left-radius:6px}
+.me .bub{background:var(--me);color:var(--ink);border-top-right-radius:6px}
+:root.p4 .riko .bub{animation:pop .22s ease,glitch 5s infinite}
+.meta{font-size:10px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+@keyframes pop{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes glitch{0%,92%,100%{transform:none;text-shadow:none}93%{transform:translateX(2px);text-shadow:-2px 0 #ff3355,2px 0 #39c6d6}95%{transform:translateX(-2px) skewX(-4deg)}97%{transform:none;text-shadow:1px 0 #ff3355}}
+@keyframes flick{0%,100%{opacity:1}45%{opacity:1}47%{opacity:.25}49%{opacity:1}72%{opacity:.6}74%{opacity:1}}
+.sys{align-self:center;font-size:11px;color:var(--muted);background:rgba(255,255,255,.5);padding:3px 12px;border-radius:999px;text-align:center}
+:root.p3 .sys,:root.p4 .sys{background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.sys.red{color:var(--warn)}
+.sys.month-sys{font-family:var(--f-cute);color:var(--ink);background:transparent;border:0;font-size:12px;letter-spacing:.08em}
+:root.p3 .sys.month-sys,:root.p4 .sys.month-sys{font-family:var(--f-horror);font-size:15px;letter-spacing:.2em;border:0;background:transparent}
+.dots{display:inline-flex;gap:4px;padding:4px 2px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+
+.tray{background:var(--bg);border-top:1px solid var(--line);padding-block:10px 12px;display:flex;flex-direction:column;gap:8px;flex:none;min-height:64px;position:relative;z-index:2;transition:background-color 2s,border-color 2s}
+.timer{height:4px;background:var(--line);border-radius:999px;overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--warn)}
+:root.p4 .timer i{box-shadow:0 0 8px var(--warn)}
+.hint{font-size:12px;color:var(--muted);text-align:center;padding-block:8px}
+.opt{font:inherit;font-size:14px;text-align:left;background:var(--opt);color:var(--ink);border:1.5px solid var(--line);border-radius:14px;padding:10px 14px;cursor:pointer;line-height:1.45;transition:background-color 2s,color 2s,border-color .2s}
+.opt{-webkit-tap-highlight-color:transparent}
+@media (hover:hover) and (pointer:fine){.opt:hover{border-color:var(--accent)}}
+.opt:focus-visible,.btn:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.toast{position:absolute;left:12px;right:12px;top:122px;background:var(--toast-bg);color:var(--toast-ink);border:1px solid var(--accent);border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.55;z-index:6;transform:translateY(-10px);opacity:0;transition:transform .3s,opacity .3s;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.toast.on{transform:none;opacity:1;pointer-events:auto;cursor:pointer}
+.toast small{display:block;font-size:10.5px;opacity:.75;margin-bottom:2px}
+.toast q{display:block;margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--me);color:var(--ink);font-size:12.5px;quotes:none}
+
+.overlay{position:absolute;inset:0;background:var(--veil);display:grid;place-items:center;z-index:10;padding-block:20px}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:26px 22px;width:min(400px,calc(100% - 32px));display:flex;flex-direction:column;gap:14px;max-height:100%;overflow-y:auto;box-sizing:border-box}
+.hero{display:flex;align-items:center;gap:14px}
+.hero .av{width:72px;height:72px;box-shadow:0 0 0 4px #fff,0 6px 18px rgba(139,92,200,.25)}
+.hero .say{background:#fff;border-radius:16px;border-top-left-radius:6px;padding:9px 12px;font-size:13.5px;line-height:1.5;color:var(--ink)}
+.card h1{font-family:var(--f-cute);font-weight:400;font-size:30px;line-height:1.25;margin:0;color:var(--accent);text-wrap:balance}
+.card p{margin:0;line-height:1.7;font-size:14px;color:var(--muted)}
+.card ul{margin:0;padding-left:1.2em;line-height:1.85;font-size:13px;color:var(--ink)}
+.card label{font-size:12px;color:var(--muted)}
+.card input{font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--opt);color:var(--ink);width:100%;box-sizing:border-box}
+.btn{font-family:var(--f-cute);font-size:16px;background:var(--accent);color:#fff;border:0;border-radius:999px;padding:13px;cursor:pointer}
+
+/* result card: always the horror room */
+.card.res{border-radius:14px;padding:28px 22px}
+.card.res .btn{font-family:var(--f-horror);font-weight:800;letter-spacing:.1em;border-radius:8px}
+.card h2{font-family:var(--f-horror);font-weight:800;font-size:34px;line-height:1.2;margin:0;text-wrap:balance}
+.card.win h2{color:var(--ink)}
+.card.lose h2{color:var(--warn);text-shadow:0 0 20px rgba(255,51,85,.45);animation:flick 2.4s infinite}
+.eyebrow{font-size:11px;letter-spacing:.3em;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{background:var(--opt);border:1px solid var(--line);border-radius:8px;padding:9px;font-size:10.5px;color:var(--muted);min-width:0}
+.stats b{display:block;font-family:var(--f-horror);font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+.last{display:flex;gap:8px;align-items:flex-end}
+.last .bub{max-width:100%;background:var(--bubble);color:var(--bubble-ink);border-top-left-radius:6px}
+.last .bub.blocked{background:var(--opt);color:var(--muted);font-size:12.5px;border:1px dashed var(--line)}
+.echo{display:flex;flex-direction:column;gap:2px;font-size:14px;color:var(--bubble);max-height:170px;overflow:hidden}
+.echo span{animation:pop .3s ease}
+.hintbox{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--muted);border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--ink)}
+.hintbox span{font-size:10px;letter-spacing:.3em;color:var(--warn)}
+.btn.sub{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.unlock{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:12px}
+.unlock>span{font-size:11px;letter-spacing:.2em;color:var(--warn)}
+.btnrow{display:flex;flex-direction:column;gap:8px}
+header.nogauge .gauges{display:none}
+#hist{z-index:12;align-items:stretch}
+.card.hist{padding:0;gap:0;max-width:460px;height:100%}
+.histhead{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;z-index:1}
+.histhead h3{margin:0;font-family:var(--f-cute);font-weight:400;font-size:17px}
+:root.p3 .histhead h3,:root.p4 .histhead h3{font-family:var(--f-horror);font-weight:800}
+.close{font:inherit;font-size:13px;background:var(--opt);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+#histBody{padding:12px 18px 24px;display:flex;flex-direction:column;gap:22px}
+.hsec{display:flex;flex-direction:column;gap:6px}
+.hsec h4{margin:0 0 4px;font-size:13px;color:var(--warn);letter-spacing:.1em}
+.hb{max-width:85%;padding:7px 11px;border-radius:14px;font-size:13px;line-height:1.5;word-break:break-word}
+.hb.riko{background:var(--bubble);color:var(--bubble-ink);border-top-left-radius:5px;align-self:flex-start}
+.hb.me{background:var(--me);color:var(--ink);border-top-right-radius:5px;align-self:flex-end}
+.hch{display:flex;flex-direction:column;gap:5px;border-left:2px solid var(--line);padding-left:10px;margin-top:6px}
+.hfx{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hnote,.hpress{font-size:11.5px;color:var(--muted)}
+.hghost{font-size:12px;color:var(--warn);border:1px dashed var(--accent);border-radius:8px;padding:6px 10px}
+.snd{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--opt);color:var(--ink);font-size:14px;line-height:1;cursor:pointer;flex:none;display:grid;place-items:center;transition:background-color 2s,color 2s}
+.snd[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+.sndline{font:inherit;font-size:13px;background:transparent;border:0;color:var(--muted);cursor:pointer;padding:4px;align-self:center}
+.snd:focus-visible,.sndline:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.rhint{font-size:12px;color:var(--accent);border:1px dashed var(--accent);border-radius:10px;padding:7px 10px;line-height:1.55}
+:root.p3 .rhint,:root.p4 .rhint{color:var(--warn)}
+.sys.tip{color:var(--accent);border:1px dashed var(--accent);background:transparent;max-width:90%;line-height:1.5;border-radius:12px;padding:6px 12px}
+.card.res.bright{border-radius:24px;border:2px solid var(--line);box-shadow:0 10px 40px rgba(255,95,158,.18)}
+.card.res.bright h2{font-family:var(--f-cute);font-weight:400;color:var(--accent);font-size:36px;text-shadow:none;animation:none}
+.card.res.bright .btn{font-family:var(--f-cute);font-weight:400;letter-spacing:.04em;border-radius:999px}
+.card.res.bright .eyebrow{color:var(--accent)}
+.card.res.bright .stats b{font-family:var(--f-cute);font-weight:400}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:11}
+.confetti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.req{position:absolute;left:12px;right:12px;top:max(14px,env(safe-area-inset-top,0px));z-index:15;background:#0b090c;color:#ebe2e7;border:1.5px solid #b0142f;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 60px rgba(0,0,0,.6);animation:drop .18s cubic-bezier(.2,1.6,.4,1)}
+@keyframes drop{from{transform:translateY(-140%)}to{transform:none}}
+.req small{font-size:10.5px;letter-spacing:.2em;color:#ff3355}
+.req .rw{display:flex;gap:10px;align-items:center}
+.req .rw .av{width:46px;height:46px}
+.req b{display:block;font-size:15px}
+.req .msg{font-size:13px;line-height:1.55;color:#ebe2e7}
+.req .rb{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.req button{font:inherit;font-size:14px;border-radius:10px;padding:10px;cursor:pointer;border:1px solid #3a1820;background:#17111a;color:#ebe2e7}
+.req button.y{background:#b0142f;border-color:#b0142f;color:#fff}
+.req button:focus-visible{outline:2px solid #ff3355;outline-offset:2px}
+.blackout{position:absolute;inset:0;background:#000;z-index:14;pointer-events:none;animation:bo .5s steps(1) forwards}
+@keyframes bo{0%{opacity:1}30%{opacity:0}45%{opacity:.85}60%{opacity:0}100%{opacity:0}}
+.after{font-size:12px;color:var(--warn);border:1px solid var(--accent);border-radius:8px;padding:8px 10px;animation:pop .4s ease}
+
+.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.flash::after{content:"";position:absolute;inset:0;background:var(--warn);opacity:.2;pointer-events:none;z-index:9;animation:fl .45s forwards}
+@keyframes fl{to{opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app" id="app">
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vig" aria-hidden="true"></div>
+  <header class="pad" id="hdr">
+    <div class="top">
+      <span class="av" id="hav"></span>
+      <div class="who"><b>リコ</b><span id="sub">大学の同期・同じゼミ</span></div>
+      <button class="snd" id="snd" aria-label="BGM" aria-pressed="true">♪</button>
+      <div class="month" id="month">4月</div>
+    </div>
+    <div class="gauges">
+      <div class="g" id="gSelf"><div class="lab">自己肯定感<b id="vSelf">100</b></div><div class="bar"><i id="bSelf"></i></div></div>
+      <div class="g" id="gRep"><div class="lab">ゼミでの評判<b id="vRep">100</b></div><div class="bar"><i id="bRep"></i></div></div>
+    </div>
+  </header>
+  <div class="talk pad" id="talk"></div>
+  <div class="tray pad" id="tray"><div class="hint">…</div></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="overlay" id="start">
+    <div class="card">
+      <div class="hero"><span class="av" id="sav"></span><div class="say">やっほー！ゼミ一緒のリコだよ♡<br>いっぱいおしゃべりしよ〜！</div></div>
+      <h1>フレネミーごっこ♡</h1>
+      <p>ゼミで仲良くなったリコとのトークを楽しむ、ゆるっと会話ゲームです。</p>
+      <ul>
+        <li>リコから届くメッセージに返信しよう</li>
+        <li>「自己肯定感」と「ゼミでの評判」が0にならないようにね</li>
+        <li>4月から3月の卒業まで、楽しく過ごせたらクリア！</li>
+      </ul>
+      <label for="nm">あなたの名前</label>
+      <input id="nm" maxlength="8" value="ゆい" autocomplete="off">
+      <button class="btn" id="go">はじめる</button>
+      <button class="btn sub" id="skip" hidden></button>
+      <button class="sndline" id="snd2">♪ BGM：オン</button>
+      <div class="unlock" id="unlock" hidden><span>クリア特典</span><button class="btn sub" id="btnHist">トーク履歴を見る</button><button class="btn sub" id="btnBonus">おまけ：眠れない夜のピロートーク</button></div>
+    </div>
+  </div>
+  <div class="overlay" id="end" hidden><div class="card res" id="endCard"></div></div>
+  <div class="req" id="req" hidden role="alertdialog" aria-live="assertive"></div>
+  <div class="overlay" id="hist" hidden><div class="card hist"><div class="histhead"><h3>トーク履歴</h3><button class="close" id="histClose">閉じる</button></div><div id="histBody"></div></div></div>
+</div>
+
+<script>
+/* Riko avatar: a college girl with long brown hair, bangs and a pink clip. Phase 4 swaps in the hollow-eyed version. */
+function avatar(creepy){
+  const bg=creepy?"#3a0d18":"#fbdbe8";
+  const eyes=creepy
+    ?'<ellipse cx="16.6" cy="20.6" rx="1.9" ry="2.5" fill="#000"/><ellipse cx="23.4" cy="20.6" rx="1.9" ry="2.5" fill="#000"/>'
+    :'<ellipse cx="16.6" cy="20.6" rx="1.3" ry="1.7" fill="#2b1a15"/><ellipse cx="23.4" cy="20.6" rx="1.3" ry="1.7" fill="#2b1a15"/><circle cx="17" cy="20" r=".5" fill="#fff"/><circle cx="23.8" cy="20" r=".5" fill="#fff"/>';
+  const mouth=creepy
+    ?'<path d="M16.2 24 Q20 29 23.8 24" stroke="#7d0c22" stroke-width="1.1" fill="#3a0610" stroke-linecap="round"/>'
+    :'<path d="M18.5 24.6 Q20 25.9 21.5 24.6" stroke="#c4566d" stroke-width=".9" fill="none" stroke-linecap="round"/>';
+  return '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+   +'<rect width="40" height="40" fill="'+bg+'"/>'
+   +'<path d="M7.5 40 C6.5 27 8.5 9.5 20 8.6 C31.5 9.5 33.5 27 32.5 40 Z" fill="#6e4636"/>'
+   +'<path d="M11 40 C11.5 34 15 31.5 20 31.5 C25 31.5 28.5 34 29 40 Z" fill="#fffaf4"/>'
+   +'<path d="M17 31.6 L20 35 L23 31.6" stroke="#e8d9cc" stroke-width=".8" fill="none"/>'
+   +'<rect x="17.6" y="26" width="4.8" height="6" fill="#f5cfbd"/>'
+   +'<ellipse cx="20" cy="19.6" rx="8.4" ry="9.4" fill="#fde3d4"/>'
+   +'<path d="M11.2 20 C10.6 11.5 15 8.4 20 8.4 C25 8.4 29.4 11.5 28.8 20 C27.4 16 25.6 14.2 23.6 13.4 C22.2 15.6 18.6 16 15.8 15.2 C14.2 16.4 12.6 17.8 11.2 20 Z" fill="#6e4636"/>'
+   +'<path d="M11.4 19 C10.5 25 10.8 30 12.2 34 L9.6 34 C8.8 29 9.2 23 11.4 19 Z" fill="#6e4636"/>'
+   +'<path d="M28.6 19 C29.5 25 29.2 30 27.8 34 L30.4 34 C31.2 29 30.8 23 28.6 19 Z" fill="#6e4636"/>'
+   +'<rect x="23.6" y="11.2" width="4" height="1.5" rx=".75" fill="#f48fb1" transform="rotate(-22 25.6 12)"/>'
+   +eyes
+   +'<ellipse cx="14.7" cy="23.2" rx="1.7" ry=".9" fill="#f5a3b8" opacity=".75"/><ellipse cx="25.3" cy="23.2" rx="1.7" ry=".9" fill="#f5a3b8" opacity=".75"/>'
+   +mouth+'</svg>';
+}
+
+
+/* BGM: an original music-box lullaby synthesized live. Each phase detunes, slows, drops notes,
+   turns minor, then adds a low drone and a heartbeat. Endings wind the box down or cut it. */
+const BGM=(()=>{
+ let ctx=null,master,dry,wet,delay,fb,droneG,on=true,phase=1,step=0,next=0,timer=null,mode="play",slow=1;
+ try{on=localStorage.getItem("zt_bgm")!=="0"}catch(_){}
+ const MEL=[76,79,84,79,81,79,76,0, 77,76,74,76,79,0,0,0, 76,79,84,79,81,84,83,81, 79,76,74,72,72,0,0,0];
+ const BASS=[48,43,45,43];
+ const MINOR={76:75,81:80,83:82,45:44};
+ const P={
+  1:{bpm:104,det:0, skip:0,  wrong:0,  minor:0,drone:0,  heart:0,wet:.15},
+  2:{bpm:96, det:12,skip:.05,wrong:.06,minor:0,drone:0,  heart:0,wet:.25},
+  3:{bpm:84, det:35,skip:.12,wrong:.1, minor:1,drone:.03,heart:0,wet:.4},
+  4:{bpm:66, det:60,skip:.2, wrong:.15,minor:1,drone:.05,heart:1,wet:.55}};
+ const hz=m=>440*Math.pow(2,(m-69)/12);
+ function init(){
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+  try{ctx=new AC()}catch(_){return false}
+  master=ctx.createGain();master.gain.value=on?.8:0;master.connect(ctx.destination);
+  dry=ctx.createGain();dry.connect(master);
+  delay=ctx.createDelay(1);delay.delayTime.value=.33;fb=ctx.createGain();fb.gain.value=.35;
+  wet=ctx.createGain();wet.gain.value=P[phase].wet;
+  delay.connect(fb);fb.connect(delay);delay.connect(wet);wet.connect(master);
+  const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=220;
+  droneG=ctx.createGain();droneG.gain.value=P[phase].drone;lp.connect(droneG);droneG.connect(master);
+  [36,37.1].forEach(m=>{const o=ctx.createOscillator();o.type="sawtooth";o.frequency.value=hz(m);o.connect(lp);o.start()});
+  return true;
+ }
+ function bell(time,m,det,vol){
+  const f=hz(m),g=ctx.createGain();
+  g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(vol,time+.004);g.gain.exponentialRampToValueAtTime(.0008,time+1.4);
+  const o1=ctx.createOscillator();o1.type="sine";o1.frequency.value=f;o1.detune.value=det;
+  const o2=ctx.createOscillator();o2.type="sine";o2.frequency.value=f*4.02;o2.detune.value=det;
+  const g2=ctx.createGain();g2.gain.value=.18;
+  o1.connect(g);o2.connect(g2);g2.connect(g);g.connect(dry);g.connect(delay);
+  o1.start(time);o2.start(time);o1.stop(time+1.5);o2.stop(time+1.5);
+ }
+ function bass(time,m,vol,dur){
+  const o=ctx.createOscillator(),g=ctx.createGain();o.type="triangle";o.frequency.value=hz(m);
+  g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(vol,time+.02);g.gain.exponentialRampToValueAtTime(.0008,time+dur);
+  o.connect(g);g.connect(dry);o.start(time);o.stop(time+dur+.05);
+ }
+ function heart(time){
+  [[0,.35],[.2,.25]].forEach(([d,v])=>{
+   const o=ctx.createOscillator(),g=ctx.createGain(),t0=time+d;o.type="sine";
+   o.frequency.setValueAtTime(62,t0);o.frequency.exponentialRampToValueAtTime(36,t0+.16);
+   g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.01);g.gain.exponentialRampToValueAtTime(.0008,t0+.28);
+   o.connect(g);g.connect(master);o.start(t0);o.stop(t0+.3);
+  });
+ }
+ function tick(){
+  if(!ctx||mode==="stop")return;
+  while(next<ctx.currentTime+.15){
+   const p=P[phase],dur=60/p.bpm/2*slow,i=step%32;
+   let m=MEL[i];
+   if(m&&Math.random()>=p.skip){
+    if(p.minor&&MINOR[m])m=MINOR[m];
+    if(Math.random()<p.wrong)m+=Math.random()<.5?-1:1;
+    if(phase===4&&Math.random()<.15)m-=12;
+    bell(next,m,(Math.random()*2-1)*p.det,.12);
+   }
+   if(i%4===0){let b=BASS[Math.floor(i/8)];if(p.minor&&MINOR[b])b=MINOR[b];bass(next,b,phase>=3?.05:.07,dur*3.5)}
+   if(p.heart&&i%8===0)heart(next);
+   next+=dur;step++;
+   if(mode==="wind"){slow*=1.1;if(slow>3.4){mode="stop";droneG.gain.setTargetAtTime(0,ctx.currentTime,3);return}}
+  }
+ }
+ function sync(){
+  const lab=on?"オン":"オフ";
+  const a=document.getElementById("snd"),b=document.getElementById("snd2");
+  if(a){a.setAttribute("aria-pressed",String(on));a.setAttribute("aria-label","BGM "+lab)}
+  if(b)b.textContent="♪ BGM："+lab;
+ }
+ document.addEventListener("visibilitychange",()=>{if(!ctx)return;document.hidden?ctx.suspend():ctx.resume()});
+ return{
+  start(){
+   if(!ctx&&!init())return;
+   if(ctx.state==="suspended")ctx.resume();
+   if(!timer){next=ctx.currentTime+.1;timer=setInterval(tick,25)}
+  },
+  toggle(){
+   on=!on;try{localStorage.setItem("zt_bgm",on?"1":"0")}catch(_){}
+   sync();
+   if(on&&!ctx)this.start();
+   if(ctx){if(ctx.state==="suspended")ctx.resume();master.gain.setTargetAtTime(on?.8:0,ctx.currentTime,.05)}
+  },
+  setPhase(n){
+   phase=n;if(!ctx)return;
+   const t=ctx.currentTime;
+   wet.gain.setTargetAtTime(P[n].wet,t,1);droneG.gain.setTargetAtTime(P[n].drone,t,1.5);
+   if(mode!=="play"){mode="play";slow=1;next=t+.08}
+  },
+  ending(kind){
+   if(!ctx)return;
+   if(kind==="clear"){
+    phase=1;mode="play";slow=.85;next=ctx.currentTime+.4;
+    wet.gain.setTargetAtTime(.1,ctx.currentTime,.3);droneG.gain.setTargetAtTime(0,ctx.currentTime,.3);
+   }else{mode="wind";slow=1.2}
+  },
+  jolt(){
+   if(!ctx)return;
+   mode="stop";const t=ctx.currentTime;
+   [47,48,53.5,59].forEach((m,k)=>bell(t+.01,m+12,(k-1.5)*40,.2));
+   heart(t+.02);
+   droneG.gain.cancelScheduledValues(t);droneG.gain.setValueAtTime(.09,t);droneG.gain.setTargetAtTime(.03,t+.6,1.5);
+   wet.gain.setTargetAtTime(.6,t,.1);
+  },
+  sync
+ };
+})();
+
+
+/* 4 phases: gentle → comparing → working behind your back → owning you */
+const PHASE={
+ 1:{limit:10000,speed:1,sub:"大学の同期・同じゼミ",to:{s:-5,p:-5,r:["あれ、忙しかった？","全然気にしてないよ〜！"]}},
+ 2:{limit:8000,speed:.85,sub:"ゼミの同期",to:{s:-5,p:-10,r:["既読ついてるのに〜😢","まあ{n}ってそういうとこあるよね笑"],note:"リコ「最近{n}に既読無視されがちなんだよね〜笑」"}},
+ 3:{limit:7000,speed:.7,sub:"{n}の一番の友達",to:{s:-10,p:-10,r:["また既読無視？","私なにかした？ちゃんと言ってくれないとわかんないよ"],note:"リコ「{n}に無視されてるの、私だけじゃないよね？🥲」"}},
+ 4:{limit:5000,speed:.5,sub:"ずっと友達",to:{s:-15,p:-15,r:["ねえ","無視しないで","みんなにも{n}のこと聞いてみるね"],note:"リコ「{n}と連絡つかないんだけど、誰か知らない？心配で眠れない…」"}}
+};
+const EV=[
+ /* ---- phase 1: 軽いモヤモヤ ---- */
+ {m:4,ph:1,lines:["{n}、今日の発表おつかれ〜！先生めっちゃ頷いてたね✨","私だったらあの資料の量じゃ不安で寝れないけど笑"],c:[
+  {t:"ありがと！頑張ったんだ〜",s:-5,p:0,r:["えら〜い！{n}って量で勝負するタイプだもんね☺️"]},
+  {t:"え、資料多すぎた？",s:-10,p:0,r:["全然！気にしすぎだよ〜","私は好きだよ、ああいう頑張ってる感🥺"]},
+  {t:"リコの発表も楽しみにしてる",s:0,p:-5,r:["えー圧かけないで笑","私は少なめにまとめる派だから〜"]}]},
+ {m:5,ph:1,lines:["今日の服かわいかった！","でも{n}ってイエベなのに、ブルベの色ばっか着てるよね。もったいな〜い😢"],c:[
+  {t:"そうなの？知らなかった",s:-10,p:0,r:["うん、ちょっと顔色悪く見えるかも〜","あ、今日のことじゃないよ？いつもの話！"]},
+  {t:"好きな色だから気にしてない",s:0,p:-5,r:["そっか！自分が好きならいいと思う！","周りがどう思うかは別だけどね☺️"]},
+  {t:"リコは何ベなの？",s:-5,p:0,r:["私ブルベ夏〜。診断3回行ったから間違いないの","{n}も行けば？紹介しよっか？"]}]},
+ {m:6,ph:1,lines:["ゼミ合宿の写真送るね📸","{n}だけ目つぶってたけど、これが一番みんな盛れてたからこれでいいよね？"],c:[
+  {t:"別のにしてほしいな",s:0,p:-5,r:["えー、もうみんなインスタ上げちゃった😂","ごめん〜"]},
+  {t:"いいよ〜",s:-10,p:0,r:["ありがと〜！{n}って優しいよね","そういうとこ好き☺️"]},
+  {t:"リコは盛れてるね",s:-5,p:0,r:["え、ほんと？加工してないよ？笑"]}]},
+ /* ---- phase 2: 比較と噂 ---- */
+ {m:7,ph:2,lines:["ES何社出した？","私もう最終面接なんだけど、{n}は焦んなくていいと思うよ？人それぞれだし！","ゼミのみんなにも「{n}はマイペースだから大丈夫」って言っといた！"],c:[
+  {t:"まだ2社…",s:-15,p:0,r:["全然いいじゃん！私が早すぎるだけ😂","夏インターンも行かない派？"]},
+  {t:"勝手にみんなに言わないで",s:-5,p:-10,r:["え、フォローしたのに😢"],note:"リコ「{n}のこと庇ったら怒られちゃった🥲 難しいね」"},
+  {t:"どこ受けてるの？",s:-10,p:-5,r:["えーそれ聞く？笑","{n}が受けないとこだから大丈夫だよ〜"]}]},
+ {m:8,ph:2,lines:["そういえば彼氏とどう？","この前ちょっと不安って言ってたじゃん"],ghost:"ていうか{n}の彼氏、私のインスタめっちゃ見てるよ",c:[
+  {t:"体目的なのかもって思ってて…",at:1,s:-15,p:0,r:["絶対ないって〜！","{n}の見た目で、そういう目的の人は寄ってこないもん！","むしろ中身で選ばれてるってことだよ💕"]},
+  {t:"今はうまくいってるよ！",s:-10,p:-5,r:["よかった〜！前の人みたいにならないように🙏","あ、前の人の話ってゼミでしちゃってたらごめん笑"]},
+  {t:"その話、あんまり人に言わないでね",s:-5,p:-10,r:["え、言うわけないじゃん😢","そんなふうに思われてたの悲しい…"],note:"リコ「信じてた子に疑われるのってつらいね🥲」"}]},
+ {m:9,ph:2,lines:["ゼミのサトシくんがさ、{n}ってちょっと近寄りがたいって言ってたよ","私は全然そう思わないけどね！"],ghost:"正直サトシくんだけじゃないけどね",c:[
+  {t:"え、なんで？",s:-15,p:0,r:["わかんない〜笑 たぶん真顔のときかな？","私は{n}の真顔好きだけどね"]},
+  {t:"本人に聞いてみる",s:0,p:-15,r:["え、やめなよ！","私が言ったってバレたら気まずいじゃん😢"],note:"サトシ「なんか急に詰められたんだけど、俺なんかした？」"},
+  {t:"教えてくれてありがと",s:-10,p:-5,r:["ううん！友達だもん","また何か聞いたら教えるね💕"]}]},
+ /* ---- phase 3: 裏工作 ---- */
+ {m:10,ph:3,lines:["{n}のストーリー見たよ〜！自己肯定感上げようとしてて偉い🥺","{n}ももっともっと可愛くなっちゃうね💗","ゼミの子たちにも見せちゃった！みんな応援してるって☺️"],c:[
+  {t:"ありがとう…",s:-15,p:0,r:["うん！毎日幸せって思えるようになるといいね💗"]},
+  {t:"なんでみんなに見せたの？",s:0,p:-15,r:["え、いい投稿だったから…","{n}ってそういうとこ神経質だよね"],note:"リコ「ストーリー見せただけで怒られた…私が悪いのかな🥲」"},
+  {t:"リコもね",s:-10,p:-5,r:["私はもう十分かな〜笑","ありがと💕"]}]},
+ {m:11,ph:3,lines:["聞いて！第一志望から内定でた😭✨","{n}は？まだだよね？","この前{n}が落ちたとこ、私の友達普通に受かってた笑","あ、落ちたことはゼミのみんな知ってるから気にしなくていいよ！"],ghost:"私が言ったわけじゃないよ？",c:[
+  {t:"おめでとう！",s:-15,p:0,r:["ありがと〜！","{n}も早く仲間入りしよ？👋"]},
+  {t:"誰から聞いたの？",s:-5,p:-15,r:["え、みんな知ってるよ？","{n}が自分で言ったんじゃなかったっけ？"]},
+  {t:"私も内定もらったよ",s:0,p:-15,r:["え、そうなんだ！どこ？","……あ、そこね！滑り止め？笑"],note:"リコ「{n}内定おめでとう〜！第一志望じゃないけど良かったね☺️」"}]},
+ {m:12,ph:3,lines:["ねえ、ミホちゃん彼氏と別れたらしいよ","かわいそ〜😢 {n}、何か知ってる？"],leak:true,c:[
+  {t:"知らない。そっとしといたら？",s:-10,p:-10,r:["えー、心配してるだけなのに","{n}って冷たいね"]},
+  {t:"浮気されたらしいよ",s:-5,p:-20,r:["え、そうなんだ！","教えてくれてありがと😳"],note:"ミホ「誰が言いふらしてるの？」　リコ「{n}から聞いたんだけど…」"},
+  {t:"リコは何か聞いたの？",s:-15,p:-5,r:["私は何も〜！","{n}って人の噂好きだよね笑"]}]},
+ /* ---- phase 4: 支配 ---- */
+ {m:1,ph:4,clock:[1,47],lines:["起きてる？","先生に、{n}の卒論と私の卒論ちょっと似てるとこあるって相談しといた","{n}が真似したとか思ってないよ？念のためね🤫"],press:["見てる？","既読ついてるよね","怒ってる？"],c:[
+  {t:"真似してないよ",s:-10,p:-15,r:["わかってるって〜！","でも先生がどう思うかは、私にはどうにもできないし…"]},
+  {t:"全部書き直す…",s:-20,p:0,r:["えらい！","私だったら心折れてるけど、{n}なら大丈夫💪"]},
+  {t:"先生に直接話す",s:0,p:-15,r:["やめて！","私が告げ口したみたいになるじゃん😭","{n}ってほんとに自分のことしか考えてないよね"]}]},
+ {m:2,ph:4,clock:[2,31],lines:["追いコンの席、{n}の分なかったみたい😢","幹事の子が人数数え間違えたんだって","私から言っとくね！","来ても気まずいなら、無理しなくていいからね？"],ghost:"みんなもそのほうが楽そうだったし",press:["{n}？","寝ちゃった？","返事ないと心配になるじゃん"],c:[
+  {t:"今回は行かないことにする",s:-15,p:-10,r:["そっか…","みんなには{n}は忙しいって言っとくね☺️"]},
+  {t:"自分で幹事に聞く",s:-5,p:-15,r:["え、私が言うって言ったのに","信用されてないんだね…"],note:"リコ「{n}が幹事の子に詰め寄ったらしい…大丈夫かな🥲」"},
+  {t:"確認してくれてありがと",s:-15,p:-5,r:["ううん！{n}のためならなんでもするよ💗"]}]},
+ {m:3,ph:4,clock:[3,12],lines:["卒業してもずっと友達でいようね💗","{n}って、私がいなかったらゼミで何も残らなかったもんね","私だけは{n}のこと分かってるから"],press:["ねえ","ねえ","{n}","ずっと友達だよね？"],c:[
+  {t:"うん、ずっと友達",s:-20,p:0,r:["やった〜！","社会人になっても毎日連絡するね😊"]},
+  {t:"それ、どういう意味？",s:-5,p:-15,r:["え、冗談だって〜！","本気にするとこが{n}らしいよね笑"]},
+  {t:"もう連絡しないで",s:15,p:-20,r:["……そっか","みんなにはなんて言えばいい？","{n}にひどいこと言われたって言っていい？"]}]}
+];
+
+const S={runStart:0,name:"ゆい",self:100,rep:100,i:0,tm:null,press:[],hist:[],clock:null,ph:1,echo:null,fails:0};
+try{S.fails=parseInt(localStorage.getItem("zt_fails")||"0",10)||0}catch(_){}
+try{S.cleared=localStorage.getItem("zt_clear")==="1"}catch(_){S.cleared=false}
+S.lastFail=null;try{S.lastFail=JSON.parse(localStorage.getItem("zt_lastfail")||"null")}catch(_){}
+function bestFor(e,key){return e.c.slice().sort((a,b)=>(b[key]-a[key])||((b.s+b.p)-(a.s+a.p)))[0]}
+const HINTS=[
+ "受け入れる返事は自己肯定感が、言い返す返事は評判が削れる。片方だけを削り続けないように。",
+ "既読スルーが一番損。迷ったら、とりあえずどれか返そう。",
+ "後半ほどダメージが大きい。前半は少し強気に返して、自己肯定感を温存しよう。",
+ "3月の最後のトークでは、本当の気持ちを伝える選択肢もある。"
+];
+const $=id=>document.getElementById(id);
+const talk=$("talk"),tray=$("tray");
+const t=s=>s.replaceAll("{n}",S.name);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const avNow=()=>avatar(S.ph>=4);
+function setPhase(n){BGM.setPhase(n);const r=document.documentElement;r.classList.remove("p1","p2","p3","p4","pwin");if(n>1)r.classList.add("p"+n);S.ph=n;$("hav").innerHTML=avNow()}
+function now(){
+  if(S.clock){S.clock[1]+=1;if(S.clock[1]>59){S.clock[0]++;S.clock[1]-=60}return S.clock[0]+":"+String(S.clock[1]).padStart(2,"0")}
+  const d=new Date();return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
+}
+function scroll(){talk.scrollTop=talk.scrollHeight}
+try{new ResizeObserver(()=>scroll()).observe(talk)}catch(_){}
+function sys(txt,cls=""){const d=document.createElement("div");d.className="sys "+cls;d.textContent=txt;talk.appendChild(d);scroll();return d}
+function riko(txt){const r=document.createElement("div");r.className="row riko";r.innerHTML='<span class="av">'+avNow()+'</span><div class="bub"></div><span class="meta"></span>';r.querySelector(".bub").textContent=txt;r.querySelector(".meta").textContent=now();talk.appendChild(r);scroll();return r}
+function me(txt){const r=document.createElement("div");r.className="row me";r.innerHTML='<span class="meta"></span><div class="bub"></div>';r.querySelector(".bub").textContent=txt;talk.appendChild(r);scroll();const tm=now();setTimeout(()=>{r.querySelector(".meta").innerHTML="既読<br>"+tm},S.ph===4?200:700);return r}
+function typing(){const r=document.createElement("div");r.className="row riko";r.innerHTML='<span class="av">'+avNow()+'</span><div class="bub"><span class="dots"><i></i><i></i><i></i></span></div>';talk.appendChild(r);scroll();return r}
+async function say(lines,at,fn){
+  const sp=PHASE[S.ph].speed;
+  for(let k=0;k<lines.length;k++){const l=lines[k];const ty=typing();await sleep(Math.min(600+l.length*30,1700)*sp);ty.remove();riko(t(l));if(fn&&k===at)fn();await sleep(250*sp)}
+}
+function draw(){
+  for(const [k,g,v,b] of [["self","gSelf","vSelf","bSelf"],["rep","gRep","vRep","bRep"]]){
+    $(v).textContent=S[k];$(b).style.width=S[k]+"%";$(g).classList.toggle("low",S[k]<=30);
+  }
+}
+function chip(gid,d){if(!d)return;const c=document.createElement("span");c.className="chip "+(d<0?"neg":"pos");c.textContent=(d>0?"+":"")+d;$(gid).appendChild(c);setTimeout(()=>c.remove(),1300)}
+function hit(s,p){
+  S.self=Math.max(0,Math.min(100,S.self+s));S.rep=Math.max(0,Math.min(100,S.rep+p));
+  draw();chip("gSelf",s);chip("gRep",p);
+  const app=$("app");
+  if(S.ph>=2&&(s<=-15||p<=-15)){app.classList.remove("shake","flash");void app.offsetWidth;app.classList.add("shake","flash");setTimeout(()=>app.classList.remove("shake","flash"),500)}
+}
+let toastT;
+function toast(txt,quote,onShow){
+  return new Promise(res=>{
+    const el=$("toast");el.innerHTML="<small>ゼミのグループ（9）</small>";el.append(t(txt));
+    if(quote){const q=document.createElement("q");q.textContent=quote;el.append(q)}
+    el.classList.add("on");clearTimeout(toastT);
+    let done=false;
+    const close=()=>{if(done)return;done=true;clearTimeout(toastT);el.classList.remove("on");el.onclick=null;setTimeout(res,350)};
+    el.onclick=close;
+    setTimeout(()=>{if(onShow)onShow()},400);
+    toastT=setTimeout(close,quote?4200:3200);
+  });
+}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function wait(txt){tray.innerHTML='<div class="hint">'+txt+'</div>'}
+function clearPress(){S.press.forEach(clearTimeout);S.press=[]}
+
+async function step(){
+  if(S.i>=EV.length)return end("clear");
+  const e=EV[S.i];
+  setPhase(e.ph);
+  $("sub").textContent=t(PHASE[e.ph].sub);
+  S.clock=e.clock?e.clock.slice():null;
+  $("month").textContent=e.m+"月";
+  if(S.i===S.runStart){
+    if(S.runStart>0)sys(EV[S.runStart-1].m+"月までスキップしました（自己肯定感"+S.self+"・評判"+S.rep+"から）");
+    if(S.fails>=1)sys("ヒント："+HINTS[(S.fails-1)%HINTS.length],"tip");
+  }
+  sys(e.m+"月","month-sys");
+  wait("リコが入力中…");
+  await sleep(500*PHASE[e.ph].speed);
+  await say(e.lines);
+  const limit=PHASE[e.ph].limit;
+  tray.innerHTML='<div class="timer"><i id="tbar"></i></div>';
+  if(S.fails>=1&&S.lastFail&&S.lastFail.i===S.i){
+    const key=S.lastFail.k==="self"?"s":"p",gname=key==="s"?"自己肯定感":"評判";
+    const hn=document.createElement("div");hn.className="rhint";
+    hn.textContent="ヒント：前回はこの月で"+gname+"が0になった。「"+t(bestFor(e,key).t)+"」なら"+gname+"が減りにくい。";
+    tray.appendChild(hn);
+  }
+  shuffle(e.c).forEach((c,k)=>{const b=document.createElement("button");b.className="opt";b.id="opt"+k;b.textContent=t(c.t);b.onclick=()=>pick(c,e);tray.appendChild(b)});
+  scroll();
+  const bar=$("tbar");
+  requestAnimationFrame(()=>{bar.style.transition="width "+limit+"ms linear";bar.style.width="0%"});
+  if(e.press){const gap=limit/(e.press.length+1);e.press.forEach((l,k)=>S.press.push(setTimeout(()=>riko(t(l)),gap*(k+1))))}
+  S.tm=setTimeout(()=>pick(PHASE[e.ph].to,e),limit);
+}
+async function pick(c,e){
+  clearTimeout(S.tm);clearPress();
+  wait("…");
+  if(c.t){const txt=t(c.t);me(txt);if(!txt.startsWith("（"))S.hist.push(txt)}
+  else sys("既読をつけたまま返信しませんでした","red");
+  await sleep(900*PHASE[e.ph].speed);
+  const at=c.at!=null?c.at:c.r.length-1;
+  await say(c.r,at,()=>hit(c.s,c.note?0:c.p));
+  if(c.note){await sleep(400);await toast(c.note,null,()=>hit(0,c.p))}
+  if(e.ghost){await sleep(700);const g=riko(t(e.ghost));await sleep(1500);g.remove();sys("リコがメッセージの送信を取り消しました","red")}
+  if(e.leak&&S.hist.length>1){
+    await sleep(1000);
+    sys("リコがゼミのグループにスクリーンショットを送信しました","red");
+    await sleep(600);
+    const pool=S.hist.slice(0,-1);
+    await toast("リコ「これ{n}が前に言ってたんだけど、みんなどう思う？」",pool[Math.floor(Math.random()*pool.length)],()=>hit(-5,-10));
+  }
+  await sleep(500);
+  if(S.self<=0)return end("self");
+  if(S.rep<=0)return end("rep");
+  S.i++;
+  await sleep(700);
+  step();
+}
+function statsHTML(months){
+  return '<div class="stats"><div>自己肯定感<b>'+S.self+'</b></div><div>ゼミでの評判<b>'+S.rep+'</b></div><div>耐えた期間<b>'+months+'か月</b></div></div>';
+}
+function end(kind){
+  clearPress();clearInterval(S.echo);
+  setPhase(4);
+  BGM.ending(kind==="clear"?"clear":"lose");
+  wait("トークは終了しました");
+  const card=$("endCard");
+  if(kind==="clear"){
+    const sc=S.self+S.rep;
+    const scar=sc>=80?"後遺症：なし":sc>=40?"後遺症：通知音が少し怖い":"後遺症：既読をつけるのが怖い";
+    const r=document.documentElement;r.classList.remove("p4");r.classList.add("pwin");
+    card.className="card res win bright";
+    card.innerHTML='<span class="eyebrow">CONGRATULATIONS</span><h2>友達卒業おめでとう！</h2><p></p><div class="last"><span class="av">'+avatar(false)+'</span><div class="bub blocked">このユーザーはブロックされています</div></div>'+statsHTML(12)+'<p style="font-size:12px">'+scar+'</p><div class="after" id="sting" hidden></div><div class="unlock"><span>クリア特典が解放されました</span><button class="btn sub" id="endHist">トーク履歴を見る</button></div><div class="btnrow"><button class="btn" id="again">もう一度リコに会う</button><button class="btn sub" id="endTitle">タイトルに戻る</button></div>';
+    S.cleared=true;S.lastFail=null;try{localStorage.setItem("zt_clear","1");localStorage.removeItem("zt_lastfail")}catch(_){}
+    $("endHist").onclick=showHist;$("endTitle").onclick=toTitle;
+    card.querySelector("p").textContent="卒業式の帰り道、リコをブロックしました。明日からは、新しい毎日のはじまりです🌸";
+    confetti(true);
+    S.reqT=setTimeout(()=>friendReq(2),4900);
+  }else{
+    card.className="card res lose";
+    const why=kind==="self"?"心が折れて、リコの言葉しか信じられなくなりました。":"ゼミで居場所をなくし、隣にはリコしか残りませんでした。";
+    S.fails++;S.lastFail={i:S.i,k:kind};try{localStorage.setItem("zt_fails",String(S.fails));localStorage.setItem("zt_lastfail",JSON.stringify(S.lastFail))}catch(_){}
+    card.innerHTML='<span class="eyebrow">RESULT</span><h2>これからも友達だね</h2><p></p><div class="last"><span class="av">'+avatar(true)+'</span><div class="bub"></div></div><div class="echo" id="echo" aria-hidden="true"></div>'+statsHTML(S.i+1)+'<div class="hintbox" id="hintbox" hidden><span>HINT</span><div id="hg"></div><div id="hs"></div></div><div class="btnrow">'+(S.fails>=2?'<button class="btn" id="endSkip">'+EV[SKIP_AT].m+'月から再挑戦する</button>':'')+'<button class="btn'+(S.fails>=2?' sub':'')+'" id="again">もう一度やり直す</button></div>';
+    if($("endSkip"))$("endSkip").onclick=()=>startRun(SKIP_AT);
+    card.querySelector("p").textContent=why;
+    if(S.fails>=3){
+      const e=EV[S.i],key=kind==="self"?"s":"p",gname=kind==="self"?"自己肯定感":"評判";
+      const best=bestFor(e,key);
+      $("hg").textContent=HINTS[(S.fails-3)%HINTS.length];
+      $("hs").textContent=e.m+"月のリコには「"+t(best.t)+"」と返すと、"+gname+"が減りにくい。";
+      $("hintbox").hidden=false;
+    }
+    card.querySelector(".last .bub").textContent=t(kind==="self"?"大丈夫？私がずっとそばにいるからね💗":"みんな誤解してるだけだよ。私だけは{n}の味方だからね🫶");
+    const echo=$("echo");let n=0;
+    S.echo=setInterval(()=>{
+      if(n>=8){clearInterval(S.echo);return}
+      const sp=document.createElement("span");sp.textContent="ずっと友達だね";sp.style.opacity=String(1-n*.1);sp.style.paddingLeft=(n*6)+"px";echo.appendChild(sp);n++;
+    },500);
+  }
+  setTimeout(()=>{$("end").hidden=false;($("endSkip")||$("again")).focus();$("again").onclick=restart},900);
+}
+function confetti(on){
+  const old=document.querySelector(".confetti");if(old)old.remove();
+  if(!on)return;
+  const c=document.createElement("div");c.className="confetti";c.setAttribute("aria-hidden","true");
+  const cols=["#ff8fbf","#ffd36e","#8fd8ff","#b9f2a6","#d7b8ff"];
+  for(let k=0;k<36;k++){const i=document.createElement("i");i.style.left=Math.random()*100+"%";i.style.background=cols[k%cols.length];i.style.animationDuration=(3+Math.random()*3)+"s";i.style.animationDelay=(-Math.random()*5)+"s";c.appendChild(i)}
+  $("app").appendChild(c);
+}
+const REQ=[null,null,
+ {msg:"{n}、卒業おめでとう💗 新しいアカウント作ったよ。ずっと友達だよね？"},
+ {msg:"なんで拒否するの？押し間違えたんだよね？"},
+ {msg:"ねえ。何個でも作れるよ"}];
+function friendReq(n){
+  const box=$("req");
+  if(n===2){
+    confetti(false);BGM.jolt();
+    const bo=document.createElement("div");bo.className="blackout";$("app").appendChild(bo);setTimeout(()=>bo.remove(),600);
+    const app=$("app");app.classList.remove("shake");void app.offsetWidth;app.classList.add("shake");setTimeout(()=>app.classList.remove("shake"),400);
+    try{navigator.vibrate&&navigator.vibrate([80,40,160])}catch(_){}
+  }
+  box.innerHTML='<small>友だち申請</small><div class="rw"><span class="av">'+avatar(true)+'</span><div><b>りこ_'+n+'</b><span style="font-size:11px;color:#857882">共通の友だち：ゼミのグループ（9）</span></div></div><div class="msg"></div><div class="rb"><button id="reqNo">拒否する</button><button class="y" id="reqYes">承認する</button></div>';
+  box.querySelector(".msg").textContent=t(REQ[n].msg);
+  box.hidden=false;$("reqNo").focus();
+  const note=$("sting");
+  $("reqYes").onclick=()=>{box.hidden=true;if(note){note.textContent=t("りこ_"+n+"と友だちになりました。これからもよろしくね💗");note.hidden=false}};
+  $("reqNo").onclick=()=>{
+    box.hidden=true;
+    if(n<4){S.reqT=setTimeout(()=>friendReq(n+1),1300)}
+    else if(note){note.textContent="りこ_5からの友だち申請が届いています（他18件）";note.hidden=false}
+  };
+}
+function clearReq(){clearTimeout(S.reqT);const b=$("req");if(b)b.hidden=true;confetti(false)}
+const SKIP_AT=EV.findIndex(e=>e.ph===3),SKIP_HP=80;
+function startRun(from){
+  clearReq();clearInterval(S.echo);clearPress();clearTimeout(S.tm);
+  S.mode="game";S.runStart=from;S.i=from;S.self=from?SKIP_HP:100;S.rep=from?SKIP_HP:100;S.hist=[];S.clock=null;
+  talk.innerHTML="";$("hdr").classList.remove("nogauge");
+  setPhase(EV[from].ph);draw();
+  $("end").hidden=true;$("hist").hidden=true;$("start").hidden=true;
+  step();
+}
+function restart(){startRun(0)}
+function el(tag,cls,txt){const d=document.createElement(tag);if(cls)d.className=cls;if(txt!=null)d.textContent=txt;return d}
+function hb(kind,txt){return el("div","hb "+kind,txt)}
+function sign(n){return (n>0?"+":"")+n}
+function showHist(){
+  const b=$("histBody");b.innerHTML="";
+  EV.forEach(e=>{
+    const sec=el("section","hsec");
+    sec.append(el("h4","",e.m+"月"+(e.clock?"　深夜"+e.clock[0]+":"+String(e.clock[1]).padStart(2,"0"):"")));
+    e.lines.forEach(l=>sec.append(hb("riko",t(l))));
+    if(e.press)sec.append(el("div","hpress","返信を待つ間の追撃："+e.press.map(t).join(" / ")));
+    e.c.forEach(c=>{
+      const box=el("div","hch");box.append(hb("me",t(c.t)));
+      c.r.forEach(l=>box.append(hb("riko",t(l))));
+      box.append(el("div","hfx","自己肯定感 "+sign(c.s)+"　評判 "+sign(c.p)));
+      if(c.note)box.append(el("div","hnote","ゼミのグループ："+t(c.note)));
+      sec.append(box);
+    });
+    if(e.ghost)sec.append(el("div","hghost","送信取り消しされたメッセージ：「"+t(e.ghost)+"」"));
+    if(e.leak)sec.append(el("div","hghost","この月の最後に、あなたの過去の返信がスクショでゼミのグループに流される"));
+    b.append(sec);
+  });
+  $("hist").hidden=false;$("histBody").parentElement.scrollTop=0;$("histClose").focus();
+}
+$("histClose").onclick=()=>{$("hist").hidden=true};
+
+const BONUS={
+ steps:[
+  {lines:["起きてる？","ブロックされてるのに、新しいアカウントからごめんね","今ベッドの中なんだけど眠れなくて。ちょっとだけ話していい？"],c:[
+   {t:"少しだけなら",r:["ありがと。{n}ってやっぱり優しいね"]},
+   {t:"…なに？",r:["そんな怖い顔しないでよ笑 見えてないけど"]},
+   {t:"（既読だけつける）",r:["既読ついた。聞いてくれてるってことだよね"]}]},
+  {lines:["私ね、中学のとき、ずっと一人だったの","仲良かった子に、ある日急に「リコって重い」って言われて","次の日から、グループのトークに私だけいなかった"],c:[
+   {t:"つらかったね",r:["うん。{n}なら分かってくれると思ってた"]},
+   {t:"それで？",r:["それでね、気づいたの","置いていかれる側にいたら、だめなんだって"]},
+   {t:"今の私と同じだね",r:["……そうだね","それは、ほんとにごめん"]}]},
+  {lines:["家でもね、お母さんにずっと妹と比べられてて","「リコは愛想だけはいいんだから」って毎日言われてた","だから、笑うのだけは上手になったよ"],c:[
+   {t:"リコのせいじゃないよ",r:["{n}にそう言ってもらえるの、ずっと待ってた"]},
+   {t:"だからって、人にしていいことじゃない",r:["わかってる","わかってるんだよ"]},
+   {t:"（何も言わない）",r:["黙らないでよ","{n}まで黙ったら、また一人になる"]}]},
+  {lines:["高校で初めて分かったの","先に相手を少しだけ小さくしておけば、置いていかれないって","みんな、私から離れられなくなった","{n}だけだよ。自分から離れていったの"],c:[
+   {t:"もう寝るね",r:["うん。おやすみ"]},
+   {t:"誰かに相談したほうがいいよ",r:["相談してるよ、今","{n}に"]},
+   {t:"私はもう、友達には戻らない",r:["知ってる","だから全部話したの"]}]}
+ ],
+ outro:["話せてよかった","ねえ、{n}"],
+ ghost:"今、{n}の家の前にいるって言ったらどうする？",
+ after:["冗談だよ","おやすみ💗 また明日も話そうね"]
+};
+function ask(opts){
+  return new Promise(res=>{
+    tray.innerHTML="";
+    opts.forEach((c,k)=>{const b=el("button","opt",t(c.t));b.id="bopt"+k;b.onclick=()=>res(c);tray.appendChild(b)});
+    scroll();
+  });
+}
+async function bonus(){
+  S.mode="bonus";S.clock=[0,42];
+  $("start").hidden=true;talk.innerHTML="";
+  setPhase(3);$("hdr").classList.add("nogauge");
+  $("sub").textContent="りこ_2";$("month").textContent="深夜";
+  sys("卒業から半年後のある夜","month-sys");
+  wait("りこ_2が入力中…");
+  await sleep(900);
+  for(const st of BONUS.steps){
+    await say(st.lines);
+    const c=await ask(st.c);
+    wait("…");
+    if(c.t.startsWith("（"))sys(c.t.replace(/[（）]/g,""));else me(t(c.t));
+    await sleep(1100);
+    await say(c.r);
+    await sleep(600);
+  }
+  await say(BONUS.outro);
+  await sleep(500);
+  const g=riko(t(BONUS.ghost));await sleep(1800);g.remove();sys("りこ_2がメッセージの送信を取り消しました","red");
+  await sleep(900);
+  setPhase(4);
+  await say(BONUS.after);
+  await sleep(1200);
+  BGM.ending("lose");
+  wait("トークは終了しました");
+  const card=$("endCard");card.className="card res lose";
+  card.innerHTML='<span class="eyebrow">PILLOW TALK</span><h2>おやすみ、また明日</h2><p></p><div class="last"><span class="av">'+avatar(true)+'</span><div class="bub"></div></div><div class="btnrow"><button class="btn" id="again">タイトルに戻る</button></div>';
+  card.querySelector("p").textContent="リコの過去を聞いても、あなたにできることは多くありません。ただ、通知はまだ鳴り続けています。";
+  card.querySelector(".last .bub").textContent="明日は何時に起きる？💗";
+  setTimeout(()=>{$("end").hidden=false;$("again").focus();$("again").onclick=toTitle},900);
+}
+function toTitle(){
+  clearReq();clearInterval(S.echo);clearPress();clearTimeout(S.tm);
+  S.mode="game";S.self=100;S.rep=100;S.i=0;S.hist=[];S.clock=null;
+  talk.innerHTML="";$("hdr").classList.remove("nogauge");
+  $("sub").textContent=PHASE[1].sub;$("month").textContent="4月";
+  setPhase(1);draw();wait("…");
+  $("end").hidden=true;$("hist").hidden=true;$("start").hidden=false;
+  $("unlock").hidden=!S.cleared;syncSkip();
+}
+$("btnHist").onclick=showHist;
+$("btnBonus").onclick=()=>{BGM.start();const v=$("nm").value.trim();S.name=v||"ゆい";bonus()};
+$("go").onclick=()=>{BGM.start();const v=$("nm").value.trim();S.name=v||"ゆい";startRun(0)};
+$("skip").onclick=()=>{BGM.start();const v=$("nm").value.trim();S.name=v||"ゆい";startRun(SKIP_AT)};
+function syncSkip(){const b=$("skip");b.hidden=S.fails<2;b.textContent=EV[SKIP_AT].m+"月からはじめる（ここまでスキップ）"}
+syncSkip();
+$("nm").addEventListener("keydown",e=>{if(e.key==="Enter")$("go").click()});
+$("sav").innerHTML=avatar(false);
+$("snd").onclick=()=>BGM.toggle();$("snd2").onclick=()=>BGM.toggle();BGM.sync();
+$("unlock").hidden=!S.cleared;
+setPhase(1);
+draw();
+// 即スタート：初回ロードはタイトルを飛ばしてそのまま開始（2回目以降はタイトルへ戻る作り）
+(function(){
+  let started=false;
+  try{started=sessionStorage.getItem("fg_auto")==="1";sessionStorage.setItem("fg_auto","1")}catch(_){}
+  if(!started){S.name=$("nm").value.trim()||"ゆい";startRun(0)}
+  // 音は最初のタップで鳴らす（ブラウザの制限）
+  const kick=()=>{BGM.start();removeEventListener("pointerdown",kick,true)};
+  addEventListener("pointerdown",kick,true);
+})();
+</script>
+
+</body>
+</html>
